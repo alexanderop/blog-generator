@@ -1,0 +1,13 @@
+id,expect_trigger,prompt
+explicit-01,true,"$blog"
+explicit-02,true,"$blog deep dive on this codebase"
+explicit-03,true,"$blog-post on how the build pipeline works"
+implicit-01,true,"write a blog post explaining how this SDK works so I can rebuild it"
+implicit-02,true,"generate a deep dive blog about the architecture"
+implicit-03,true,"in-depth post about the agent loop in this repo"
+implicit-04,true,"write a blog post explaining how X works"
+edge-01,true,"$blog "
+negative-01,false,"summarize this codebase in three bullets"
+negative-02,false,"create a walkthrough diagram for the auth flow"
+negative-03,false,"write a tutorial for users of this library"
+negative-04,false,"draft release notes for v2"
