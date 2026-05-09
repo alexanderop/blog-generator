@@ -76,7 +76,54 @@ dest_file="$dest_dir/index.html"
 mkdir -p "$dest_dir"
 cp -- "$src" "$dest_file"
 
+# Regenerate the post list in <aiblog_dir>/index.html if it has the marker block.
+# The index template wraps its <li> entries in `<!-- POSTS-START -->` / `<!-- POSTS-END -->`.
+index_html="$aiblog_dir/index.html"
+if [ -f "$index_html" ] && grep -q "POSTS-START" "$index_html"; then
+  python3 - "$aiblog_dir" "$index_html" <<'PY'
+import os, re, sys, html
+
+aiblog_dir, index_path = sys.argv[1], sys.argv[2]
+
+entries = []
+for name in sorted(os.listdir(aiblog_dir)):
+    post_index = os.path.join(aiblog_dir, name, "index.html")
+    if not os.path.isfile(post_index):
+        continue
+    if name.startswith(".") or name in {"node_modules"}:
+        continue
+    with open(post_index, encoding="utf-8") as f:
+        body = f.read()
+    m = re.search(r"<title>([^<]*)</title>", body)
+    title = html.escape((m.group(1).strip() if m else name))
+    slug = html.escape(name)
+    entries.append(
+        f'    <li><a href="{slug}/">\n'
+        f'      <div class="post-title">{title}</div>\n'
+        f'      <div class="post-meta">{slug}</div>\n'
+        f'    </a></li>'
+    )
+
+new_block = "\n".join(entries) if entries else "    <!-- no posts yet -->"
+
+with open(index_path, encoding="utf-8") as f:
+    index = f.read()
+
+index = re.sub(
+    r"(<!-- POSTS-START -->).*?(<!-- POSTS-END -->)",
+    lambda m: m.group(1) + "\n" + new_block + "\n    " + m.group(2),
+    index,
+    count=1,
+    flags=re.DOTALL,
+)
+
+with open(index_path, "w", encoding="utf-8") as f:
+    f.write(index)
+PY
+fi
+
 git -C "$aiblog_dir" add -- "$slug/index.html"
+[ -f "$index_html" ] && git -C "$aiblog_dir" add -- "index.html"
 
 live_url="https://${owner}.github.io/${repo}/${slug}/"
 

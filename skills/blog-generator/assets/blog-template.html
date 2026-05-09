@@ -101,6 +101,26 @@
     color: rgb(var(--color-text-base) / 0.6); font-size: 13px;
     border-bottom: 1px solid rgb(var(--color-border));
     padding-bottom: 18px; margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  #copy-md-btn {
+    background: rgb(var(--color-card));
+    color: rgb(var(--color-text-base));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 4px;
+    padding: 5px 10px;
+    font: inherit; font-size: 12.5px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+  }
+  #copy-md-btn:hover {
+    border-color: rgb(var(--color-accent));
+    color: rgb(var(--color-accent));
+  }
+  #copy-md-btn.copied {
+    color: rgb(var(--color-accent));
+    border-color: rgb(var(--color-accent));
   }
 
   h2 {
@@ -187,8 +207,49 @@
     border: 1px solid rgb(var(--color-border));
     border-radius: 6px; padding: 18px;
     margin: 14px 0 22px; text-align: center; overflow-x: auto;
+    position: relative; cursor: zoom-in;
+    transition: border-color 0.15s ease;
   }
-  .mermaid svg { max-width: 100%; height: auto; }
+  .mermaid:hover { border-color: rgb(var(--color-accent)); }
+  .mermaid svg { max-width: 100%; height: auto; pointer-events: none; }
+  .mermaid::after {
+    content: "⤢ click to expand";
+    position: absolute; top: 8px; right: 10px;
+    font-size: 11px; letter-spacing: 0.04em;
+    color: rgb(var(--color-accent));
+    background: rgb(var(--color-fill) / 0.85);
+    padding: 3px 8px; border-radius: 3px;
+    opacity: 0; transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+  .mermaid:hover::after { opacity: 1; }
+
+  /* fullscreen mermaid dialog */
+  dialog#diagram-dialog {
+    width: 95vw; height: 95vh; max-width: none; max-height: none;
+    background: rgb(var(--color-card));
+    color: rgb(var(--color-text-base));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 8px; padding: 0; overflow: hidden;
+  }
+  dialog#diagram-dialog::backdrop {
+    background: rgb(var(--color-fill) / 0.85);
+    backdrop-filter: blur(4px);
+  }
+  #diagram-stage {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px;
+  }
+  #diagram-stage svg { width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+  #diagram-close {
+    position: absolute; top: 10px; right: 14px; z-index: 2;
+    background: transparent; border: 0; cursor: pointer;
+    color: rgb(var(--color-accent));
+    font-size: 26px; line-height: 1; padding: 4px 8px;
+    border-radius: 4px;
+  }
+  #diagram-close:hover { background: rgb(var(--color-card-muted)); }
 
   /* table */
   table { width: 100%; border-collapse: collapse; margin: 8px 0 22px; font-size: 13.5px; }
@@ -243,7 +304,10 @@
 
   <h1 class="post-title fade-in">{{POST_TITLE}}</h1>
   <p class="lede fade-in" style="--animation-delay: 0.05s">{{LEDE}}</p>
-  <div class="meta fade-in" style="--animation-delay: 0.1s">{{KICKER}} · ~{{READ_MIN}}&nbsp;min read</div>
+  <div class="meta fade-in" style="--animation-delay: 0.1s">
+    <span>{{KICKER}} · ~{{READ_MIN}}&nbsp;min read</span>
+    <button id="copy-md-btn" type="button" aria-label="Copy post as Markdown">📋 Copy as Markdown</button>
+  </div>
 
   <nav id="contents" class="toc" aria-label="Table of contents">
     <h3>Contents</h3>
@@ -262,6 +326,11 @@
   -->
 
 </main>
+
+<dialog id="diagram-dialog" aria-label="Enlarged diagram">
+  <button id="diagram-close" type="button" aria-label="Close diagram">×</button>
+  <div id="diagram-stage"></div>
+</dialog>
 
 <footer>{{FOOTER}}</footer>
 
@@ -371,6 +440,154 @@
 
   await render();
   window.addEventListener('themechange', render);
+</script>
+
+<!-- ─── Mermaid fullscreen-on-click ──────────────────────────────────── -->
+<script>
+  (function () {
+    const dialog = document.getElementById('diagram-dialog');
+    const stage = document.getElementById('diagram-stage');
+    const closeBtn = document.getElementById('diagram-close');
+    if (!dialog || !stage || !closeBtn) return;
+
+    function openDiagram(mermaidEl) {
+      const svg = mermaidEl.querySelector('svg');
+      if (!svg) return;
+      const clone = svg.cloneNode(true);
+      clone.removeAttribute('style');
+      clone.removeAttribute('width');
+      clone.removeAttribute('height');
+      clone.style.maxWidth = '100%';
+      clone.style.maxHeight = '100%';
+      stage.replaceChildren(clone);
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (dialog.open) return;
+      const m = e.target.closest('.mermaid');
+      if (!m) return;
+      e.preventDefault();
+      openDiagram(m);
+    });
+
+    closeBtn.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => {
+      const r = dialog.getBoundingClientRect();
+      const inside =
+        e.clientX >= r.left && e.clientX <= r.right &&
+        e.clientY >= r.top  && e.clientY <= r.bottom;
+      if (!inside) dialog.close();
+    });
+  })();
+</script>
+
+<!-- ─── Copy post as Markdown ────────────────────────────────────────── -->
+<script>
+  (function () {
+    const btn = document.getElementById('copy-md-btn');
+    if (!btn) return;
+
+    function inline(el) {
+      let out = '';
+      el.childNodes.forEach((n) => {
+        if (n.nodeType === 3) { out += n.textContent; return; }
+        if (n.nodeType !== 1) return;
+        const tag = n.tagName.toLowerCase();
+        if (tag === 'code')      out += '`' + n.textContent + '`';
+        else if (tag === 'a')    out += '[' + inline(n) + '](' + (n.getAttribute('href') || '') + ')';
+        else if (tag === 'strong' || tag === 'b') out += '**' + inline(n) + '**';
+        else if (tag === 'em' || tag === 'i')     out += '*' + inline(n) + '*';
+        else if (tag === 'br')   out += '  \n';
+        else                     out += inline(n);
+      });
+      return out;
+    }
+
+    function block(el) {
+      if (el.nodeType !== 1) return '';
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'h1') return '# '    + inline(el).trim();
+      if (tag === 'h2') return '## '   + inline(el).trim();
+      if (tag === 'h3') return '### '  + inline(el).trim();
+      if (tag === 'h4') return '#### ' + inline(el).trim();
+      if (tag === 'p')  return inline(el).trim();
+      if (tag === 'hr') return '---';
+      if (tag === 'ul' || tag === 'ol') {
+        const ordered = tag === 'ol';
+        return Array.from(el.children).map((li, i) =>
+          (ordered ? `${i + 1}. ` : '- ') + inline(li).trim()
+        ).join('\n');
+      }
+      if (tag === 'pre') {
+        // Shiki rewrites <pre><code class="language-X"> into <pre class="shiki" data-src=… data-lang=…>
+        const code = el.dataset.src
+          ?? el.querySelector('code')?.textContent
+          ?? el.textContent;
+        const lang = el.dataset.lang
+          ?? (el.querySelector('code')?.className.match(/language-([\w-]+)/)?.[1])
+          ?? '';
+        return '```' + lang + '\n' + code.replace(/\n$/, '') + '\n```';
+      }
+      if (tag === 'table') {
+        const heads = Array.from(el.querySelectorAll('thead th')).map((th) => inline(th).trim());
+        const rows  = Array.from(el.querySelectorAll('tbody tr')).map((tr) =>
+          Array.from(tr.children).map((td) => inline(td).trim())
+        );
+        const lines = ['| ' + heads.join(' | ') + ' |',
+                       '| ' + heads.map(() => '---').join(' | ') + ' |'];
+        for (const r of rows) lines.push('| ' + r.join(' | ') + ' |');
+        return lines.join('\n');
+      }
+      if (tag === 'div') {
+        if (el.classList.contains('mermaid')) {
+          const src = (el.dataset.src ?? el.textContent).trim();
+          return '```mermaid\n' + src + '\n```';
+        }
+        if (el.classList.contains('callout')) {
+          return inline(el).trim().split('\n').map((l) => '> ' + l).join('\n');
+        }
+      }
+      return '';
+    }
+
+    function postToMarkdown() {
+      const main = document.querySelector('main');
+      const title = document.querySelector('.post-title')?.textContent.trim() ?? '';
+      const lede  = document.querySelector('.lede')?.textContent.trim()  ?? '';
+
+      const out = [];
+      if (title) out.push('# ' + title);
+      if (lede)  out.push('> ' + lede);
+
+      const skipClasses = ['breadcrumb', 'post-title', 'lede', 'meta', 'toc'];
+      for (const child of main.children) {
+        if (child.id === 'contents') continue;
+        if (skipClasses.some((c) => child.classList.contains(c))) continue;
+        const md = block(child);
+        if (md) out.push(md);
+      }
+      return out.join('\n\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+    }
+
+    btn.addEventListener('click', async () => {
+      const md = postToMarkdown();
+      const original = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(md);
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+      } catch (err) {
+        console.warn('[copy-md] clipboard failed', err);
+        btn.textContent = '✗ Copy failed';
+      }
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1600);
+    });
+  })();
 </script>
 
 <!-- ─── Shiki syntax highlighting (CDN ESM) ──────────────────────────── -->

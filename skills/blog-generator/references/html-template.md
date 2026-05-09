@@ -8,6 +8,8 @@ Reference for editing the AstroPaper-style blog skeleton. The full template live
 - **Skin-token CSS variables** — colors expressed as `rgb(var(--color-*) / alpha)` so light/dark swap by adding/removing one class on `<html>`.
 - **Theme toggle** — sun/moon SVGs, click flips the class, `localStorage` persists the choice, `themechange` event re-renders Mermaid + Shiki.
 - **Native ES modules** — `<script type="module">` for both libraries; no Babel.
+- **Click-to-zoom Mermaid diagrams** — every `<div class="mermaid">` is clickable; a native `<dialog id="diagram-dialog">` clones the rendered SVG into a fullscreen view. Hover hint via CSS `::after`. Closes on backdrop click, × button, or Escape.
+- **Copy as Markdown button** — a `#copy-md-btn` in the meta line walks `<main>`, reads `data-src` / `data-lang` from Shiki-replaced and Mermaid-rendered blocks, and writes a clean Markdown serialisation to the clipboard. Lossless for code fences and Mermaid; converts callouts to blockquotes and tables to pipe tables.
 
 ## Required CDN Dependencies
 
@@ -107,6 +109,8 @@ flowchart TD
 ```
 
 Use `&gt;` for `>` and `&lt;` for `<` inside Mermaid because we're already inside HTML.
+
+> No extra markup is needed for the zoom feature — the template's CSS + dialog + delegated click handler pick up every `.mermaid` div automatically.
 
 ### Mermaid sequence diagram
 
