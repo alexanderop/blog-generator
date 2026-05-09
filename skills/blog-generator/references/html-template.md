@@ -35,6 +35,24 @@ Both load on first paint. The page must work fully offline once the bundles are 
 
 Values are RGB triplets so they can be combined with alpha via `rgb(var(--color-X) / 0.7)`.
 
+## Mermaid theming
+
+Mermaid's theme engine only reliably parses **hex colours** ("Only hex colors are recognized by the theming engine," per its docs). Our skin tokens are stored as RGB triplet strings (e.g. `"52, 63, 96"`) for use with `rgb(var(--…) / α)` in CSS — those triplets are *not* valid CSS colours on their own, and **must not** be passed straight into `themeVariables`. The template provides two helpers in the Mermaid `<script type="module">` block: `hex('--color-x')` returns `#rrggbb`, and `rgba('--color-x', α)` returns the legacy comma-separated `rgba(r, g, b, α)` form (which Mermaid does accept for alpha-blended edges).
+
+The mapping below shows which CSS variable drives which Mermaid theme variable. Edit the helpers, not individual call sites — the assignments are intentionally uniform so a single change to the skin tokens repaints every diagram.
+
+| Skin token | Mermaid variable(s) | Role |
+|---|---|---|
+| `--color-card` | `background`, `edgeLabelBackground`, `tertiaryColor`, `activationBkgColor` | Diagram container + small chrome fills |
+| `--color-fill` | `primaryColor`, `mainBkg`, `actorBkg`, `labelBoxBkgColor` | Node / actor body fill (page bg — keeps nodes distinct from the card) |
+| `--color-accent` | `primaryBorderColor`, `nodeBorder`, `actorBorder`, `signalColor`, `titleColor`, `labelBoxBorderColor`, `activationBorderColor` | All accent strokes / arrows |
+| `--color-text-base` | `primaryTextColor`, `textColor`, `nodeTextColor`, `actorTextColor`, `signalTextColor`, `labelTextColor`, `loopTextColor`, `noteTextColor` (+ `lineColor`/`defaultLinkColor`/`actorLineColor` via `rgba` w/ low α) | Text + low-contrast edge lines |
+| `--color-card-muted` | `secondaryColor`, `clusterBkg`, `noteBkgColor` | Subgroup / note fills |
+| `--color-border` | `clusterBorder`, `noteBorderColor` | Subgroup / note strokes |
+| `--color-inverted` | `sequenceNumberColor` | Text on accent-coloured chips |
+
+The critical non-obvious rule: **`primaryColor` (node fill) must differ from `background` (container fill)**, otherwise nodes vanish into the surrounding `.mermaid` card. We map `primaryColor` to `--color-fill` (page bg) and `background` to `--color-card` (card bg) for that contrast.
+
 ## Workflow with the template
 
 1. `cp <skill-root>/assets/blog-template.html blog-{slug}.html` at the project root.

@@ -163,11 +163,13 @@ This section often deserves twice the prose budget of others.
 
 ## Voice rules
 
+The full voice spec is in [voice.md](voice.md) — read it before generating prose. Quick recap:
+
 - **Cite real files.** `agent.ts:44-55`, not "in the agent module."
 - **Quote real signatures.** Not paraphrased pseudo-code.
 - **Use callouts sparingly.** 2-4 per post. Each one is a load-bearing insight.
-- **Em-dashes for asides.** `the harness — pi-agent-core's Agent class — drives the loop`.
-- **First-person plural or impersonal.** "We see that" or "you can see that" — never "I" or marketing voice.
+- **Em-dashes for asides**, not parentheses.
+- **POV is flexible.** "I", "you", or "we" — pick whichever fits the sentence. Avoid marketing voice.
 - **Name the surprise.** When something is clever, *say so*: "this is the single cleverest bit."
 
 ## Length targets
@@ -226,7 +228,10 @@ Voice, formatting, and tooling rules for the HTML generation pass (Step 4 of the
 
 ### Voice
 
-- **First-person plural ("we") or impersonal ("you")** — never marketing voice.
+The default voice is in [voice.md](voice.md) — calibrated to alexop.dev. Read it before writing. If the user supplied a different voice sample at trigger time, follow that instead.
+
+Hard rules that apply on top of any voice:
+
 - **Cite real files and line ranges**: `<code>build.ts:62-218</code>`.
 - **Quote real signatures and short snippets**, not paraphrases.
 - **Em-dashes for asides**, not parentheses.
@@ -243,6 +248,7 @@ Voice, formatting, and tooling rules for the HTML generation pass (Step 4 of the
 - Keep node labels short; put detail in `<sub>` tags inside the label.
 - **Don't add `classDef`** in Mermaid — the page CSS variables theme it via `themeVariables` already.
 - Inside Mermaid, escape `<` as `&lt;` and `>` as `&gt;` (we're nested inside HTML).
+- **Don't revert the Mermaid theme block to `` rgba(${styleVar(n)} / ${a}) ``** — that emits invalid CSS (Mermaid's engine only parses hex; the malformed string makes it silently fall back to its purple/cream defaults). Use the `hex()` / `rgba()` helpers in the template.
 
 ### Code blocks
 

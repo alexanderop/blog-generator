@@ -5,7 +5,7 @@ compatibility: Claude Code. Requires Bash + a browser. Internet on first load (C
 allowed-tools: "Bash(open:*) Bash(cp:*) Bash(ls:*) Bash(bash:*) Read Write Edit Glob Grep Task"
 metadata:
   author: Alexander Opalic
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Blog Post Generator (Deep-Dive HTML)
@@ -67,7 +67,9 @@ Use **Mermaid for diagrams** at three points minimum: layered architecture (flow
 
 4. **Insert section content** between the TOC and the footer. Use the snippet patterns in `references/html-template.md` (plain section, code block, callout, Mermaid flowchart, sequence diagram, table, rebuild step).
 
-5. **Voice, heading, diagram, and code-block conventions** — see `references/content-structure.md` §Generation conventions.
+5. **Voice** — `references/voice.md` is the default voice (calibrated to alexop.dev). Read it before writing prose. If the user supplied their own voice sample or "write like X" instruction at trigger time, follow that instead.
+
+6. **Heading, diagram, and code-block conventions** — see `references/content-structure.md` §Generation conventions.
 
 ### Step 5 — Validate and open
 
@@ -78,6 +80,18 @@ open blog-{slug}.html       # macOS
 
 If the validator exits non-zero, fix the issues it lists and re-run. **Do not hand off until validate exits 0.**
 
+### Step 6 — Publish
+
+Once the validator passes, publish the post to the user's GitHub-Pages-backed blog repo. The script copies the file into `<aiblog_dir>/<slug>/index.html`, commits, pushes, and prints the live URL on its final line. It is idempotent — regenerating the post and re-running republishes it; if nothing changed it prints "already up to date" and exits 0.
+
+```bash
+bash <skill-root>/scripts/publish-blog.sh blog-{slug}.html
+```
+
+By default the script targets `~/Projects/aiBlog`. Override with `AIBLOG_DIR=/path/to/repo` for a different clone.
+
+If the script exits 1 because the blog repo is missing, **relay its setup hint to the user verbatim — don't try to create the repo yourself.** Creating a public repo is a one-time action that needs the user's confirmation.
+
 ## Quality checklist (the validator does NOT cover these)
 
 The validator checks structure (doctype, theme tokens, ≥3 Mermaid blocks, language classes, TOC anchors resolve, ≥2 callouts, rebuild plan steps 1–8). After it passes, you still need to verify:
@@ -85,14 +99,15 @@ The validator checks structure (doctype, theme tokens, ≥3 Mermaid blocks, lang
 - [ ] Every cited file path and function name maps to **a real file** — no fabrication.
 - [ ] Each callout captures a load-bearing insight, not a summary.
 - [ ] The "clever subsystem" section earns the deep-dive label (a smart reader nods or laughs).
-- [ ] Voice is impersonal/we, not marketing ("powerful", "blazing-fast" — gone).
+- [ ] Voice matches `references/voice.md` (or the user's supplied voice). No banned marketing words ("powerful", "blazing-fast", "seamless" — gone). No throat-clearing openers.
 - [ ] Each rebuild step is independently runnable — something works after step N.
 - [ ] No section is just a heading; every one has prose.
 
 ## References
 
+- `references/voice.md` — default voice (alexop.dev calibration); overridable per-call.
 - `references/html-template.md` — snippet patterns (plain section, code block, callout, Mermaid, table) and anti-patterns.
-- `references/content-structure.md` — section recipe, length targets, voice rules, generation conventions.
+- `references/content-structure.md` — section recipe, length targets, generation conventions.
 - `references/subagent-report-format.md` — exact format Explore subagents must return.
 - `assets/blog-template.html` — the skeleton to copy.
 - `scripts/validate-blog.sh` — deterministic post-generation gate.

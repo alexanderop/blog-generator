@@ -290,23 +290,68 @@
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
+  // Mermaid's theme engine reliably parses hex; the CSS-var triplets ("33, 39, 55")
+  // need to be converted. rgba() falls back to the legacy comma form for alpha.
   const styleVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const rgb = (n, a = 1) => `rgba(${styleVar(n)} / ${a})`;
+  const hex  = (n) => '#' + styleVar(n).split(',')
+    .map(s => parseInt(s.trim(), 10).toString(16).padStart(2, '0')).join('');
+  const rgba = (n, a) => {
+    const [r, g, b] = styleVar(n).split(',').map(s => s.trim());
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  };
 
   function configure() {
+    const isDark = document.documentElement.classList.contains('dark');
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
       themeVariables: {
-        background:         rgb('--color-card'),
-        primaryColor:       rgb('--color-card'),
-        primaryTextColor:   rgb('--color-text-base'),
-        primaryBorderColor: rgb('--color-border'),
-        lineColor:          rgb('--color-text-base', 0.7),
-        secondaryColor:     rgb('--color-card-muted'),
-        tertiaryColor:      rgb('--color-fill'),
+        darkMode: isDark,
         fontFamily: 'ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace',
         fontSize: '13px',
+
+        // Container fill — matches the surrounding .mermaid card.
+        background:           hex('--color-card'),
+
+        // Generic / flowchart node fill: page background, NOT the card colour, so
+        // nodes stand out against the container instead of disappearing into it.
+        primaryColor:         hex('--color-fill'),
+        primaryTextColor:     hex('--color-text-base'),
+        primaryBorderColor:   hex('--color-accent'),
+        secondaryColor:       hex('--color-card-muted'),
+        tertiaryColor:        hex('--color-card'),
+
+        // Edges, links, body text.
+        lineColor:            rgba('--color-text-base', 0.55),
+        defaultLinkColor:     rgba('--color-text-base', 0.55),
+        textColor:            hex('--color-text-base'),
+        titleColor:           hex('--color-accent'),
+
+        // Flowchart specifics.
+        mainBkg:              hex('--color-fill'),
+        nodeBorder:           hex('--color-accent'),
+        clusterBkg:           hex('--color-card-muted'),
+        clusterBorder:        hex('--color-border'),
+        edgeLabelBackground:  hex('--color-card'),
+        nodeTextColor:        hex('--color-text-base'),
+
+        // Sequence diagram.
+        actorBkg:             hex('--color-fill'),
+        actorBorder:          hex('--color-accent'),
+        actorTextColor:       hex('--color-text-base'),
+        actorLineColor:       rgba('--color-text-base', 0.4),
+        signalColor:          hex('--color-accent'),
+        signalTextColor:      hex('--color-text-base'),
+        labelBoxBkgColor:     hex('--color-fill'),
+        labelBoxBorderColor:  hex('--color-accent'),
+        labelTextColor:       hex('--color-text-base'),
+        loopTextColor:        hex('--color-text-base'),
+        noteBkgColor:         hex('--color-card-muted'),
+        noteBorderColor:      hex('--color-border'),
+        noteTextColor:        hex('--color-text-base'),
+        activationBkgColor:   hex('--color-card'),
+        activationBorderColor: hex('--color-accent'),
+        sequenceNumberColor:  hex('--color-inverted'),
       },
       flowchart: { htmlLabels: true, curve: 'basis' },
       sequence:  { actorMargin: 50 },

@@ -159,6 +159,16 @@ else
   fail "Shiki 1.x import missing (expected shiki@1)"
 fi
 
+# 12b. Mermaid theme helpers must not use the malformed `rgba(${styleVar(n)} / ${a})`
+#      pattern — Mermaid's theme engine parses hex only, so that string is invalid
+#      and the diagrams silently fall back to Mermaid's purple/cream defaults.
+#      Fix: use the hex() / rgba(n, α) helpers in assets/blog-template.html.
+if grep -qF 'rgba(${styleVar(n)} / ' "$FILE"; then
+  fail "broken Mermaid theme helper detected: \`rgba(\${styleVar(n)} / \${a})\` is invalid CSS — replace with the hex()/rgba(n, α) helpers from assets/blog-template.html"
+else
+  pass "Mermaid theme helpers use hex (no malformed rgba slash form)"
+fi
+
 # 13. .post-title class is used (the accent-colored title)
 if grep -q 'class="post-title' "$FILE"; then
   pass ".post-title heading present"
